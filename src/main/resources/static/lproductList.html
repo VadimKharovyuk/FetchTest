@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список продуктів</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>Список продуктів</h1>
+
+<table id="productsTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Назва</th>
+            <th>Опис</th>
+            <th>Ціна</th>
+            <th>Категорія</th>
+            <th>Кількість</th>
+            <th>Бренд</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Продукти будут добавлены сюда -->
+    </tbody>
+</table>
+
+<div id="errorMessage" class="error"></div>
+
+<script>
+async function getAllProducts() {
+    try {
+        const response = await fetch('/api/products', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Помилка сервера: ${response.status}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        throw error;
+    }
+}
+
+function renderProducts(products) {
+    const tbody = document.querySelector('#productsTable tbody');
+    tbody.innerHTML = ''; // очищаем старые строки
+
+    products.forEach(product => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${product.id || ''}</td>
+            <td>${product.name || ''}</td>
+            <td>${product.description || ''}</td>
+            <td>${product.price != null ? product.price.toFixed(2) : ''}</td>
+            <td>${product.category || ''}</td>
+            <td>${product.quantity != null ? product.quantity : ''}</td>
+            <td>${product.brand || ''}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const errorMessage = document.getElementById('errorMessage');
+    try {
+        const products = await getAllProducts();
+        renderProducts(products);
+    } catch (error) {
+        errorMessage.textContent = '❌ Не вдалося отримати список продуктів: ' + error.message;
+    }
+});
+</script>
+
+</body>
+</html>
