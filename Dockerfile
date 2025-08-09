@@ -21,11 +21,14 @@ COPY src ./src
 # Собираем приложение
 RUN ./mvnw clean package -DskipTests
 
-# Создаем финальный образ
-FROM openjdk:17-jre-alpine
+# Создаем финальный образ - используем более современный образ
+FROM eclipse-temurin:17-jre-alpine
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
+
+# Устанавливаем wget для health check
+RUN apk add --no-cache wget
 
 # Копируем собранный JAR файл из предыдущего этапа
 COPY --from=0 /app/target/FetchTest-0.0.1-SNAPSHOT.jar app.jar
@@ -44,7 +47,7 @@ ENV JAVA_OPTS="-Xms128m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseC
 # Открываем порт
 EXPOSE 1518
 
-# Упрощенный health check (без Actuator)
+# Упрощенный health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:1518/api/products || exit 1
 
