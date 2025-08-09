@@ -44,6 +44,7 @@ USER spring:spring
 # Устанавливаем переменные окружения для оптимизации JVM под 512MB RAM
 ENV JAVA_OPTS="-Xms128m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseContainerSupport"
 
+
 # Открываем порт
 EXPOSE 1518
 
