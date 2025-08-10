@@ -71,7 +71,7 @@ function renderProducts(products) {
     products.forEach(product => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><a href="product.html?id=${product.id}" title="Перейти до продукту">${product.id || ''}</a></td>
+            <td><a href="productById.html?id=${product.id}" title="Перейти до продукту">${product.id || ''}</a></td>
             <td>${product.name || ''}</td>
             <td>${product.description || ''}</td>
             <td>${product.price != null ? product.price.toFixed(2) : ''}</td>
