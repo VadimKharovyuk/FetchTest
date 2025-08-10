@@ -1,117 +1,340 @@
 <!DOCTYPE html>
 <html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Список продуктів</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { margin-bottom: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f4f4f4; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .error { color: red; margin-top: 10px; }
-        a { color: #0066cc; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Список продуктів</title>
 
-  <a href="https://fetchtest-oc9k.onrender.com/lproductList.html">Таблица продуктов</a>
-   <a href="https://fetchtest-oc9k.onrender.com/create.product.html">Создание продуктов</a>
-    <a href="https://fetchtest-oc9k.onrender.com/productById.html">Продукт по ID</a>
+		<!-- Bootstrap CSS -->
+		<link
+			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+			rel="stylesheet"
+		/>
+		<!-- FontAwesome -->
+		<link
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+			rel="stylesheet"
+		/>
 
-<h1>Список продуктів</h1>
-<h2>Искать по ID **</h2>
+		<style>
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				padding: 30px 15px;
+				background: #f8f9fa;
+				min-height: 100vh;
+			}
+			a.nav-link {
+				font-weight: 600;
+			}
+			h1 {
+				font-weight: 700;
+				margin-bottom: 1.5rem;
+				color: #343a40;
+			}
+			.search-section h2 {
+				font-weight: 600;
+				color: #495057;
+				margin-bottom: 0.5rem;
+			}
+			.api-badge {
+				background: linear-gradient(45deg, #28a745, #20c997);
+				color: white;
+				padding: 0.3rem 0.9rem;
+				border-radius: 20px;
+				font-weight: 600;
+				font-size: 0.85rem;
+			}
+			.btn-delete {
+				transition: background-color 0.3s ease;
+			}
+			.btn-delete:hover {
+				background-color: #dc3545;
+				color: white;
+			}
+			#errorMessage {
+				margin-top: 15px;
+				font-weight: 600;
+			}
+			/* Подсветка удаляемой строки */
+			tr.deleting {
+				background-color: #ffe6e6 !important;
+				color: #a00 !important;
+				transition: background-color 0.5s ease;
+			}
+			/* Модальное окно подтверждения */
+			#confirmModalBackdrop {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100vw;
+				height: 100vh;
+				background-color: rgba(0, 0, 0, 0.5);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 1050;
+			}
+			#confirmModal {
+				background: white;
+				padding: 25px 30px;
+				border-radius: 8px;
+				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+				max-width: 400px;
+				width: 90%;
+				text-align: center;
+			}
+			#confirmModal p {
+				margin-bottom: 25px;
+				font-size: 18px;
+				font-weight: 600;
+				color: #333;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Навигация -->
+		<nav class="mb-4">
+			<a
+				href="https://fetchtest-oc9k.onrender.com/lproductList.html"
+				class="nav-link d-inline me-3 text-decoration-none text-primary"
+			>
+				<i class="fas fa-table me-1"></i> Таблица продуктов
+			</a>
+			<a
+				href="https://fetchtest-oc9k.onrender.com/create.product.html"
+				class="nav-link d-inline me-3 text-decoration-none text-primary"
+			>
+				<i class="fas fa-plus-circle me-1"></i> Создание продуктов
+			</a>
+			<a
+				href="https://fetchtest-oc9k.onrender.com/productById.html"
+				class="nav-link d-inline text-decoration-none text-primary"
+			>
+				<i class="fas fa-search me-1"></i> Продукт по ID
+			</a>
+		</nav>
 
-<table id="productsTable">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Назва</th>
-            <th>Опис</th>
-            <th>Ціна</th>
-            <th>Категорія</th>
-            <th>Кількість</th>
-            <th>Бренд</th>
-            <th>Удалить **</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Продукти будут добавлены сюда -->
-    </tbody>
-</table>
+		<h1>Список продуктів</h1>
 
-<div id="errorMessage" class="error"></div>
+		<!-- Блок поиска по ID и названию на одном уровне -->
+		<div class="search-section mb-4">
+			<div class="row g-3 align-items-end">
+				<div class="col-12 col-md-3">
+					<label for="searchById" class="form-label fw-semibold"
+						>Пошук по ID</label
+					>
+					<input
+						id="searchById"
+						type="number"
+						placeholder="Введіть ID продукту"
+						class="form-control"
+					/>
+				</div>
+				<div class="col-12 col-md-5">
+					<label for="searchByName" class="form-label fw-semibold"
+						>Пошук за назвою</label
+					>
+					<input
+						id="searchByName"
+						type="text"
+						placeholder="Введіть назву продукту"
+						class="form-control"
+						autocomplete="off"
+					/>
+				</div>
+			</div>
+		</div>
 
-<script>
-async function getAllProducts() {
-    try {
-        const response = await fetch('/api/products', {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
+		<table class="table table-striped table-hover align-middle">
+			<thead class="table-light">
+				<tr>
+					<th>ID</th>
+					<th>Назва</th>
+					<th>Опис</th>
+					<th>Ціна</th>
+					<th>Категорія</th>
+					<th>Кількість</th>
+					<th>Бренд</th>
+					<th>Видалити</th>
+				</tr>
+			</thead>
+			<tbody id="productsTableBody">
+				<!-- Продукти будуть тут -->
+			</tbody>
+		</table>
 
-        if (!response.ok) {
-            throw new Error(`Помилка сервера: ${response.status}`);
-        }
+		<div id="errorMessage" class="text-danger"></div>
 
-        return await response.json();
+		<!-- Модальное окно подтверждения -->
+		<div id="confirmModalBackdrop">
+			<div id="confirmModal">
+				<p>Видалити цей продукт?</p>
+				<button id="confirmDeleteBtn" class="btn btn-danger me-2">
+					Видалити
+				</button>
+				<button id="cancelDeleteBtn" class="btn btn-secondary">
+					Скасувати
+				</button>
+			</div>
+		</div>
 
-    } catch (error) {
-        throw error;
-    }
-}
+		<!-- Bootstrap Bundle JS (Popper + Bootstrap) -->
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-function renderProducts(products) {
-    const tbody = document.querySelector('#productsTable tbody');
-    tbody.innerHTML = ''; // очищаем старые строки
+		<script>
+			let allProducts = []; // всі продукти для фільтрації
+			let productIdToDelete = null;
+			let rowToDelete = null;
 
-    products.forEach(product => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><a href="productById.html?id=${product.id}" title="Перейти до продукту">${product.id || ''}</a></td>
-            <td>${product.name || ''}</td>
-            <td>${product.description || ''}</td>
-            <td>${product.price != null ? product.price.toFixed(2) : ''}</td>
-            <td>${product.category || ''}</td>
-            <td>${product.quantity != null ? product.quantity : ''}</td>
-            <td>${product.brand || ''}</td>
-            <td><button onclick="deleteProduct(${product.id})">Видалити</button></td>
+			async function getAllProducts() {
+				try {
+					const response = await fetch("/api/products", {
+						method: "GET",
+						headers: { "Content-Type": "application/json" },
+					});
+					if (!response.ok)
+						throw new Error(`Помилка сервера: ${response.status}`);
+					return await response.json();
+				} catch (error) {
+					throw error;
+				}
+			}
+
+			function renderProducts(products) {
+				const tbody = document.getElementById("productsTableBody");
+				tbody.innerHTML = "";
+
+				if (products.length === 0) {
+					tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Продукти не знайдені</td></tr>`;
+					return;
+				}
+
+				products.forEach(product => {
+					const tr = document.createElement("tr");
+					tr.setAttribute("data-product-id", product.id);
+					tr.innerHTML = `
+          <td><a href="productById.html?id=${
+						product.id
+					}" title="Перейти до продукту">${product.id || ""}</a></td>
+          <td><a href="productById.html?id=${
+						product.id
+					}" class="text-decoration-none text-primary">${
+						product.name || ""
+					}</a></td>
+          <td>${product.description || ""}</td>
+          <td>${product.price != null ? product.price.toFixed(2) : ""}</td>
+          <td>${product.category || ""}</td>
+          <td>${product.quantity != null ? product.quantity : ""}</td>
+          <td>${product.brand || ""}</td>
+          <td>
+            <button class="btn btn-outline-danger btn-sm btn-delete" onclick="confirmDelete(${
+							product.id
+						}, this.closest('tr'))">
+              <i class="fas fa-trash-alt"></i> Видалити
+            </button>
+          </td>
         `;
-        tbody.appendChild(row);
-    });
-}
+					tbody.appendChild(tr);
+				});
+			}
 
-async function deleteProduct(productId) {
-    try {
-        const response = await fetch(`/api/products/${productId}`, {
-            method: 'DELETE'
-        });
+			function applyFilters() {
+				const idFilter = document.getElementById("searchById").value.trim();
+				const nameFilter = document
+					.getElementById("searchByName")
+					.value.trim()
+					.toLowerCase();
 
-        if (response.ok) {
-            // Обновляем список после удаления
-            const products = await getAllProducts();
-            renderProducts(products);
-        } else {
-            throw new Error('Не вдалося видалити продукт');
-        }
-    } catch (error) {
-        document.getElementById('errorMessage').textContent = '❌ Помилка при видаленні: ' + error.message;
-    }
-}
+				let filtered = allProducts;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const errorMessage = document.getElementById('errorMessage');
-    try {
-        const products = await getAllProducts();
-        renderProducts(products);
-    } catch (error) {
-        errorMessage.textContent = '❌ Не вдалося отримати список продуктів: ' + error.message;
-    }
-});
-</script>
+				if (idFilter) {
+					filtered = filtered.filter(p => p.id.toString().startsWith(idFilter));
+				}
 
-</body>
+				if (nameFilter) {
+					filtered = filtered.filter(
+						p => p.name && p.name.toLowerCase().startsWith(nameFilter)
+					);
+				}
+
+				renderProducts(filtered);
+				document.getElementById("errorMessage").textContent = "";
+			}
+
+			async function deleteProduct(productId) {
+				try {
+					const response = await fetch(`/api/products/${productId}`, {
+						method: "DELETE",
+					});
+					if (!response.ok) throw new Error("Не вдалося видалити продукт");
+
+					// Оновлюємо локальний список
+					allProducts = allProducts.filter(p => p.id !== productId);
+					applyFilters();
+				} catch (error) {
+					document.getElementById("errorMessage").textContent =
+						"❌ Помилка при видаленні: " + error.message;
+				}
+			}
+
+			// Показать модальное окно подтверждения
+			function confirmDelete(productId, row) {
+				productIdToDelete = productId;
+				rowToDelete = row;
+				rowToDelete.classList.add("deleting");
+				document.getElementById("confirmModalBackdrop").style.display = "flex";
+			}
+
+			// Отмена удаления
+			function cancelDelete() {
+				if (rowToDelete) {
+					rowToDelete.classList.remove("deleting");
+					rowToDelete = null;
+				}
+				productIdToDelete = null;
+				document.getElementById("confirmModalBackdrop").style.display = "none";
+			}
+
+			// Подтверждение удаления
+			async function confirmDeletion() {
+				if (productIdToDelete !== null && rowToDelete !== null) {
+					// Подтверждено — удаляем продукт
+					await deleteProduct(productIdToDelete);
+
+					// Снимаем подсветку и скрываем модалку
+					rowToDelete.classList.remove("deleting");
+					rowToDelete = null;
+					productIdToDelete = null;
+					document.getElementById("confirmModalBackdrop").style.display =
+						"none";
+				}
+			}
+
+			document
+				.getElementById("cancelDeleteBtn")
+				.addEventListener("click", cancelDelete);
+			document
+				.getElementById("confirmDeleteBtn")
+				.addEventListener("click", confirmDeletion);
+
+			document.addEventListener("DOMContentLoaded", async () => {
+				const errorMessage = document.getElementById("errorMessage");
+
+				document
+					.getElementById("searchById")
+					.addEventListener("input", applyFilters);
+				document
+					.getElementById("searchByName")
+					.addEventListener("input", applyFilters);
+
+				try {
+					allProducts = await getAllProducts();
+					renderProducts(allProducts);
+				} catch (error) {
+					errorMessage.textContent =
+						"❌ Не вдалося отримати список продуктів: " + error.message;
+				}
+			});
+		</script>
+	</body>
 </html>

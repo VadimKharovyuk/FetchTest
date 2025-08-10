@@ -1,83 +1,144 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Створення продукту</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        label { display: block; margin-top: 10px; }
-        input, textarea { width: 300px; padding: 5px; }
-        button { margin-top: 15px; padding: 10px 15px; }
-        #message { margin-top: 15px; font-weight: bold; }
-        .error { color: red; }
-        .success { color: green; }
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 700px;
+            margin-top: 40px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        #message {
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        .spinner-border {
+            width: 1rem;
+            height: 1rem;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Створення продукту</h1>
 
-<h1>Створення продукту</h1>
-  <a href="https://fetchtest-oc9k.onrender.com/lproductList.html">Таблица продуктов</a>
-   <a href="https://fetchtest-oc9k.onrender.com/create.product.html">Создание продуктов</a>
-    <a href="https://fetchtest-oc9k.onrender.com/productById.html">Продукт по ID</a>
+        <div class="mb-3 text-center">
+            <a href="https://fetchtest-oc9k.onrender.com/lproductList.html" class="btn btn-outline-primary btn-sm me-1">Таблиця продуктів</a>
+            <a href="https://fetchtest-oc9k.onrender.com/create.product.html" class="btn btn-outline-success btn-sm me-1">Створення продуктів</a>
+            <a href="https://fetchtest-oc9k.onrender.com/productById.html" class="btn btn-outline-secondary btn-sm">Продукт по ID</a>
+        </div>
 
-<form id="productForm">
-    <label>Назва*: <input type="text" name="name" required></label>
-    <label>Опис: <textarea name="description"></textarea></label>
-    <label>Ціна*: <input type="number" step="0.01" name="price" required></label>
-    <label>Короткий опис: <input type="text" name="shortDescription"></label>
-    <label>Категорія*: <input type="text" name="category" required></label>
-    <label>Кількість*: <input type="number" name="quantity" min="0" required></label>
-    <label>Бренд: <input type="text" name="brand"></label>
-    <button type="submit">Створити продукт</button>
-</form>
+        <form id="productForm">
+            <div class="mb-3">
+                <label class="form-label">Назва*:</label>
+                <input type="text" name="name" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Опис:</label>
+                <textarea name="description" class="form-control"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Ціна*:</label>
+                <input type="number" step="0.01" name="price" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Короткий опис:</label>
+                <input type="text" name="shortDescription" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Категорія*:</label>
+                <input type="text" name="category" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Кількість*:</label>
+                <input type="number" name="quantity" min="0" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Бренд:</label>
+                <input type="text" name="brand" class="form-control" />
+            </div>
+            <button type="submit" id="submitBtn" class="btn btn-primary w-100">
+                Створити продукт
+            </button>
+        </form>
 
-<div id="message"></div>
+        <div id="message"></div>
+    </div>
 
-<script>
-async function createProduct(productData) {
-    try {
-        const response = await fetch('/api/products', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
-        });
+    <script>
+        async function createProduct(productData) {
+            try {
+                const response = await fetch("/api/products", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(productData),
+                });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw errorData; // Бросаем JSON ошибок
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw errorData;
+                }
+
+                const createdProduct = await response.json();
+                return createdProduct;
+            } catch (error) {
+                throw error;
+            }
         }
 
-        const createdProduct = await response.json();
-        return createdProduct;
+        document.getElementById("productForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
 
-    } catch (error) {
-        throw error;
-    }
-}
+            const submitBtn = document.getElementById("submitBtn");
+            const messageEl = document.getElementById("message");
+            messageEl.textContent = "";
+            messageEl.className = "";
 
-document.getElementById('productForm').addEventListener('submit', async function (event) {
-    event.preventDefault();
+            // Блокируем кнопку и добавляем спиннер
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Збереження <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
-    const formData = new FormData(event.target);
-    const productData = Object.fromEntries(formData.entries());
-    productData.price = parseFloat(productData.price);
-    productData.quantity = parseInt(productData.quantity, 10);
+            const formData = new FormData(event.target);
+            const productData = Object.fromEntries(formData.entries());
+            productData.price = parseFloat(productData.price);
+            productData.quantity = parseInt(productData.quantity, 10);
 
-    const messageEl = document.getElementById('message');
-    messageEl.textContent = '';
-    messageEl.className = '';
+            try {
+                const createdProduct = await createProduct(productData);
 
-    try {
-        const createdProduct = await createProduct(productData);
-        messageEl.textContent = '✅ Продукт успішно створено! ID: ' + createdProduct.id;
-        messageEl.className = 'success';
-    } catch (error) {
-        messageEl.textContent = '❌ Помилка: ' + JSON.stringify(error);
-        messageEl.className = 'error';
-    }
-});
-</script>
-
+                // Сообщение об успехе
+                messageEl.textContent = "✅ Продукт успішно створено! ID: " + createdProduct.id;
+                messageEl.className = "success";
+            } catch (error) {
+                messageEl.textContent = "❌ Помилка: " + JSON.stringify(error);
+                messageEl.className = "error";
+            } finally {
+                // Возвращаем кнопку в исходное состояние
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Створити продукт";
+            }
+        });
+    </script>
 </body>
 </html>
