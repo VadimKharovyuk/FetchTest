@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .product-container {
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .product-title {
+            font-size: 24px;
+            margin: 0;
+            color: #2c3e50;
+        }
+        
+        .product-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .product-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .product-description {
+            margin: 15px 0;
+            line-height: 1.7;
+        }
+        
+        .product-short-description {
+            font-style: italic;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            padding: 15px;
+            border: 1px solid #e74c3c;
+            border-radius: 4px;
+            background-color: #fdecea;
+            margin-bottom: 20px;
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        #product-id {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Information</h1>
+    
+    <div class="search-form">
+        <input type="number" id="product-id" placeholder="Enter product ID" min="1">
+        <button onclick="loadProduct()">Load Product</button>
+    </div>
+    
+    <div id="error-container" class="error-message hidden"></div>
+    
+    <div id="loading" class="loading hidden">
+        Loading product data...
+    </div>
+    
+    <div id="product-container" class="product-container hidden">
+        <div class="product-header">
+            <h2 class="product-title" id="product-name"></h2>
+            <div class="product-price" id="product-price"></div>
+        </div>
+        
+        <div class="product-meta">
+            <span id="product-category"></span>
+            <span id="product-brand"></span>
+            <span id="product-quantity"></span>
+        </div>
+        
+        <p class="product-short-description" id="product-short-description"></p>
+        <div class="product-description" id="product-description"></div>
+    </div>
+
+    <script>
+        async function loadProduct() {
+            const productId = document.getElementById('product-id').value;
+            
+            if (!productId || isNaN(productId) || productId < 1) {
+                showError("Будь ласка, введіть коректний ID продукта (ціле число більше 0)");
+                return;
+            }
+            
+            // Update URL without reload
+            window.history.pushState({}, '', `?id=${productId}`);
+            
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('product-container').classList.add('hidden');
+            document.getElementById('error-container').classList.add('hidden');
+            
+            try {
+                const response = await fetch(`/api/products/${productId}`);
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    displayProduct(product);
+                } else if (response.status === 404) {
+                    showError("Продукт з таким ID не знайдено");
+                } else {
+                    showError("Сталася помилка при завантаженні продукту");
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError("Помилка мережі. Спробуйте ще раз.");
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+        
+        function displayProduct(product) {
+            document.getElementById('product-name').textContent = product.name;
+            document.getElementById('product-price').textContent = `$${product.price}`;
+            document.getElementById('product-description').textContent = product.description || 'Опис відсутній';
+            document.getElementById('product-short-description').textContent = product.shortDescription || '';
+            document.getElementById('product-category').textContent = `Категорія: ${product.category}`;
+            document.getElementById('product-brand').textContent = product.brand ? `Бренд: ${product.brand}` : '';
+            document.getElementById('product-quantity').textContent = `Кількість: ${product.quantity}`;
+            
+            document.getElementById('product-container').classList.remove('hidden');
+            document.getElementById('error-container').classList.add('hidden');
+        }
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.textContent = message;
+            errorContainer.classList.remove('hidden');
+            document.getElementById('product-container').classList.add('hidden');
+        }
+        
+        // Load product from URL if ID is present
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+            
+            if (productId) {
+                document.getElementById('product-id').value = productId;
+                loadProduct();
+            }
+        };
+    </script>
+</body>
+</html>
