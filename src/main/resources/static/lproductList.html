@@ -52,13 +52,8 @@
 				color: white;
 			}
 			#errorMessage {
-				margin: 15px 0;
+				margin-top: 15px;
 				font-weight: 600;
-				background-color: #fff3f3;
-				padding: 10px 15px;
-				border-radius: 5px;
-				border-left: 4px solid #dc3545;
-				display: none;
 			}
 			/* Подсветка удаляемой строки */
 			tr.deleting {
@@ -94,24 +89,6 @@
 				font-weight: 600;
 				color: #333;
 			}
-			.cache-info {
-				font-size: 0.85rem;
-				color: #6c757d;
-				margin-top: 5px;
-			}
-			.table-container {
-				position: relative;
-			}
-			.search-row {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 20px;
-				margin-bottom: 20px;
-			}
-			.search-group {
-				flex: 1;
-				min-width: 250px;
-			}
 		</style>
 	</head>
 	<body>
@@ -140,9 +117,9 @@
 		<h1>Список продуктів</h1>
 
 		<!-- Блок поиска по ID и названию на одном уровне -->
-		<div class="search-section">
-			<div class="search-row">
-				<div class="search-group">
+		<div class="search-section mb-4">
+			<div class="row g-3 align-items-end">
+				<div class="col-12 col-md-3">
 					<label for="searchById" class="form-label fw-semibold"
 						>Пошук по ID</label
 					>
@@ -153,7 +130,7 @@
 						class="form-control"
 					/>
 				</div>
-				<div class="search-group">
+				<div class="col-12 col-md-5">
 					<label for="searchByName" class="form-label fw-semibold"
 						>Пошук за назвою</label
 					>
@@ -164,32 +141,29 @@
 						class="form-control"
 						autocomplete="off"
 					/>
-					<div id="cacheInfo" class="cache-info"></div>
 				</div>
 			</div>
 		</div>
 
-		<div id="errorMessage" class="text-danger"></div>
+		<table class="table table-striped table-hover align-middle">
+			<thead class="table-light">
+				<tr>
+					<th>ID</th>
+					<th>Назва</th>
+					<th>Опис</th>
+					<th>Ціна</th>
+					<th>Категорія</th>
+					<th>Кількість</th>
+					<th>Бренд</th>
+					<th>Видалити</th>
+				</tr>
+			</thead>
+			<tbody id="productsTableBody">
+				<!-- Продукти будуть тут -->
+			</tbody>
+		</table>
 
-		<div class="table-container">
-			<table class="table table-striped table-hover align-middle">
-				<thead class="table-light">
-					<tr>
-						<th>ID</th>
-						<th>Назва</th>
-						<th>Опис</th>
-						<th>Ціна</th>
-						<th>Категорія</th>
-						<th>Кількість</th>
-						<th>Бренд</th>
-						<th>Видалити</th>
-					</tr>
-				</thead>
-				<tbody id="productsTableBody">
-					<!-- Продукти будуть тут -->
-				</tbody>
-			</table>
-		</div>
+		<div id="errorMessage" class="text-danger"></div>
 
 		<!-- Модальное окно подтверждения -->
 		<div id="confirmModalBackdrop">
@@ -208,88 +182,27 @@
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 		<script>
-			let productCache = {}; // Кеш результатов поиска
-			let searchTimeout; // Таймер для debounce
+			let allProducts = []; // всі продукти для фільтрації
 			let productIdToDelete = null;
 			let rowToDelete = null;
-			const CACHE_LIMIT = 20; // Максимальное количество записей в кеше
-			const SEARCH_DELAY = 300; // Задержка перед поиском в мс
-			const MIN_SEARCH_LENGTH = 2; // Минимальная длина для поиска по названию
 
-			// Функция для поиска продуктов с использованием кеша
-			async function searchProducts(idFilter = '', nameFilter = '') {
-				// Генерируем ключ для кеша
-				const cacheKey = generateCacheKey(idFilter, nameFilter);
-				const cacheInfo = document.getElementById("cacheInfo");
-				
-				// Проверяем кеш
-				if (productCache[cacheKey]) {
-					cacheInfo.textContent = "Результати з кешу";
-					cacheInfo.style.color = "#28a745";
-					return productCache[cacheKey];
-				}
-				
-				// Если нет в кеше, делаем запрос к серверу
+			async function getAllProducts() {
 				try {
-					const params = new URLSearchParams();
-					if (idFilter) params.append('id', idFilter);
-					if (nameFilter) params.append('name', nameFilter);
-					
-					const response = await fetch(`/api/products/search?${params.toString()}`, {
+					const response = await fetch("/api/products", {
 						method: "GET",
 						headers: { "Content-Type": "application/json" },
 					});
-					
-					if (!response.ok) throw new Error(`Помилка сервера: ${response.status}`);
-					const products = await response.json();
-					
-					// Сохраняем в кеш (если есть результаты)
-					if (products.length > 0) {
-						addToCache(cacheKey, products);
-						cacheInfo.textContent = "Нові результати (додано до кешу)";
-						cacheInfo.style.color = "#007bff";
-					} else {
-						cacheInfo.textContent = "Нічого не знайдено";
-						cacheInfo.style.color = "#6c757d";
-					}
-					
-					return products;
+					if (!response.ok)
+						throw new Error(`Помилка сервера: ${response.status}`);
+					return await response.json();
 				} catch (error) {
-					cacheInfo.textContent = "Помилка пошуку";
-					cacheInfo.style.color = "#dc3545";
 					throw error;
 				}
 			}
 
-			// Генерация ключа для кеша
-			function generateCacheKey(idFilter, nameFilter) {
-				return `id:${idFilter}_name:${nameFilter.toLowerCase()}`;
-			}
-
-			// Добавление в кеш с ограничением размера
-			function addToCache(key, data) {
-				// Если кеш достиг лимита, удаляем самый старый элемент
-				const keys = Object.keys(productCache);
-				if (keys.length >= CACHE_LIMIT) {
-					delete productCache[keys[0]];
-				}
-				
-				productCache[key] = data;
-			}
-
-			// Очистка кеша
-			function clearCache() {
-				productCache = {};
-				document.getElementById("cacheInfo").textContent = "Кеш очищено";
-				document.getElementById("cacheInfo").style.color = "#6c757d";
-			}
-
 			function renderProducts(products) {
 				const tbody = document.getElementById("productsTableBody");
-				const errorMessage = document.getElementById("errorMessage");
-				
 				tbody.innerHTML = "";
-				errorMessage.style.display = "none";
 
 				if (products.length === 0) {
 					tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Продукти не знайдені</td></tr>`;
@@ -325,42 +238,27 @@
 				});
 			}
 
-			function showError(message) {
-				const errorMessage = document.getElementById("errorMessage");
-				errorMessage.textContent = message;
-				errorMessage.style.display = "block";
-			}
-
-			function hideError() {
-				document.getElementById("errorMessage").style.display = "none";
-			}
-
-			// Применение фильтров с debounce и проверкой минимальной длины
-			async function applyFilters() {
+			function applyFilters() {
 				const idFilter = document.getElementById("searchById").value.trim();
-				const nameFilter = document.getElementById("searchByName").value.trim();
-				
-				// Очищаем предыдущий таймаут
-				clearTimeout(searchTimeout);
-				hideError();
-				
-				// Не ищем если слишком короткий запрос по названию и нет ID
-				if (nameFilter.length > 0 && nameFilter.length < MIN_SEARCH_LENGTH && !idFilter) {
-					document.getElementById("cacheInfo").textContent = 
-						`Введіть щонайменше ${MIN_SEARCH_LENGTH} символи для пошуку`;
-					document.getElementById("cacheInfo").style.color = "#6c757d";
-					return;
+				const nameFilter = document
+					.getElementById("searchByName")
+					.value.trim()
+					.toLowerCase();
+
+				let filtered = allProducts;
+
+				if (idFilter) {
+					filtered = filtered.filter(p => p.id.toString().startsWith(idFilter));
 				}
-				
-				// Устанавливаем задержку перед поиском
-				searchTimeout = setTimeout(async () => {
-					try {
-						const products = await searchProducts(idFilter, nameFilter);
-						renderProducts(products);
-					} catch (error) {
-						showError("❌ Помилка при пошуку: " + error.message);
-					}
-				}, SEARCH_DELAY);
+
+				if (nameFilter) {
+					filtered = filtered.filter(
+						p => p.name && p.name.toLowerCase().startsWith(nameFilter)
+					);
+				}
+
+				renderProducts(filtered);
+				document.getElementById("errorMessage").textContent = "";
 			}
 
 			async function deleteProduct(productId) {
@@ -370,13 +268,12 @@
 					});
 					if (!response.ok) throw new Error("Не вдалося видалити продукт");
 
-					// Очищаем кеш, так как данные изменились
-					clearCache();
-					
-					// Выполняем текущий поиск заново
-					await applyFilters();
+					// Оновлюємо локальний список
+					allProducts = allProducts.filter(p => p.id !== productId);
+					applyFilters();
 				} catch (error) {
-					showError("❌ Помилка при видаленні: " + error.message);
+					document.getElementById("errorMessage").textContent =
+						"❌ Помилка при видаленні: " + error.message;
 				}
 			}
 
@@ -420,7 +317,9 @@
 				.getElementById("confirmDeleteBtn")
 				.addEventListener("click", confirmDeletion);
 
-			document.addEventListener("DOMContentLoaded", () => {
+			document.addEventListener("DOMContentLoaded", async () => {
+				const errorMessage = document.getElementById("errorMessage");
+
 				document
 					.getElementById("searchById")
 					.addEventListener("input", applyFilters);
@@ -428,12 +327,14 @@
 					.getElementById("searchByName")
 					.addEventListener("input", applyFilters);
 
-				// Первоначальная загрузка популярных товаров
-				applyFilters();
+				try {
+					allProducts = await getAllProducts();
+					renderProducts(allProducts);
+				} catch (error) {
+					errorMessage.textContent =
+						"❌ Не вдалося отримати список продуктів: " + error.message;
+				}
 			});
-
-			// Добавляем функцию clearCache в глобальную область видимости
-			window.clearCache = clearCache;
 		</script>
 	</body>
 </html>
